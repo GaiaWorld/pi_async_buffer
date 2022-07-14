@@ -4,3 +4,4 @@
 /.cargo
 /.idea
 /Cargo.lock
+/tests/test_file.txt
