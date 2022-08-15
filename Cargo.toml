@@ -1,6 +1,6 @@
 [package]
 name = "pi_async_buffer"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["vmos <vmos@fairblock.io>"]
 edition = "2018"
 description = "Asynchronous Buffer for IO"
@@ -9,10 +9,10 @@ license = "MIT OR Apache-2.0"
 keywords = ["pi", "async", "buffer"]
 
 [dependencies]
-pi_async = "0.3"
+pi_async = "0.5"
 futures = "0.3"
 crossbeam-queue = "0.3"
 bytes = "1.1"
 
 [dev-dependencies]
-pi_async_file = "0.3"
+pi_async_file = "0.4"

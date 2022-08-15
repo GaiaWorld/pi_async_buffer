@@ -1,8 +1,9 @@
 use std::thread;
 use std::sync::Arc;
-use std::io::ErrorKind;
 use std::path::PathBuf;
 use std::time::Duration;
+use std::collections::VecDeque;
+use std::io::{IoSlice, ErrorKind};
 
 use futures::SinkExt;
 use bytes::{Buf, BufMut, BytesMut};
@@ -48,6 +49,25 @@ fn test_bytes() {
     let part = buf.copy_to_bytes(10);
     assert_eq!(String::from_utf8_lossy(part.as_ref()).as_ref(), "Hello Worl");
     assert_eq!(String::from_utf8_lossy(buf.as_ref()).as_ref(), "d!");
+}
+
+#[test]
+fn test_bytes_io_slice() {
+    let mut buf = BytesMut::new();
+
+    let bin = "Hello World!".as_bytes();
+    buf.put(bin);
+
+    let bin = vec![255; 16];
+    buf.put(&bin[..]);
+
+    buf.put_u16_le(0xffff);
+    buf.put_u32_le(0x7fffffff);
+    buf.put_u64_le(0x7fffffffffffffff);
+
+    let mut io_list = [IoSlice::new(&[]); 32];
+    let len = buf.chunks_vectored(&mut io_list);
+    println!("!!!!!!remaining: {:?}, slice len: {:?}, io_list: {:?}", buf.remaining(), len, io_list);
 }
 
 #[test]
