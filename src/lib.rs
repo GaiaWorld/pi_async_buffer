@@ -207,7 +207,8 @@ impl PartBuffer {
 ///
 pub struct ByteBuffer {
     stream: BoxReceiver<'static, Arc<Vec<u8>>>, //流
-    buf:    BytesMut,                           //缓冲区
+    buf:    Option<BytesMut>,                   //缓冲区
+    readed: usize,                              //已读字节
 }
 
 unsafe impl Send for ByteBuffer {}
@@ -215,7 +216,11 @@ impl !Sync for ByteBuffer {}
 
 impl AsRef<[u8]> for ByteBuffer {
     fn as_ref(&self) -> &[u8] {
-        self.buf.as_ref()
+        self
+            .buf
+            .as_ref()
+            .unwrap()
+            .as_ref()
     }
 }
 
@@ -223,13 +228,14 @@ impl ByteBuffer {
     /// 创建一个异步字节缓冲区
     pub fn new(stream: BoxReceiver<'static, Arc<Vec<u8>>>) -> Self {
         let buf = match stream.size_hint() {
-            (0, _) => BytesMut::default(),
-            (size, _) => BytesMut::with_capacity(size),
+            (0, _) => Some(BytesMut::default()),
+            (size, _) => Some(BytesMut::with_capacity(size)),
         };
 
         ByteBuffer {
             stream,
             buf,
+            readed: 0,
         }
     }
 
@@ -242,25 +248,43 @@ impl ByteBuffer {
     /// 判断当前缓冲区是否为空
     #[inline]
     pub fn is_empty(&self) -> bool {
-        self.buf.is_empty()
+        self
+            .buf
+            .as_ref()
+            .unwrap()
+            .is_empty()
     }
 
     /// 获取当前缓冲区包含的所有字节长度
     #[inline]
     pub fn len(&self) -> usize {
-        self.buf.len()
+        self
+            .buf
+            .as_ref()
+            .unwrap()
+            .len()
     }
 
     /// 获取当前缓冲区剩余可读字节长度
     #[inline]
     pub fn remaining(&self) -> usize {
-        self.buf.remaining()
+        self
+            .buf
+            .as_ref()
+            .unwrap()
+            .remaining()
     }
 
     /// 流中已发送未接收的数据条目长度
     #[inline]
     pub fn unreceived(&self) -> Option<usize> {
         self.stream.current_len()
+    }
+
+    /// 清理前已读字节的总数量
+    #[inline]
+    pub fn readed(&self) -> usize {
+        self.readed
     }
 
     /// 异步获取一个i8
@@ -270,7 +294,8 @@ impl ByteBuffer {
             return None;
         }
 
-        Some(self.buf.get_i8())
+        self.readed += 1;
+        Some(self.buf.as_mut().unwrap().get_i8())
     }
 
     /// 异步获取一个u8
@@ -280,7 +305,8 @@ impl ByteBuffer {
             return None;
         }
 
-        Some(self.buf.get_u8())
+        self.readed += 1;
+        Some(self.buf.as_mut().unwrap().get_u8())
     }
 
     /// 异步获取一个大端i16
@@ -290,7 +316,8 @@ impl ByteBuffer {
             return None;
         }
 
-        Some(self.buf.get_i16())
+        self.readed += 2;
+        Some(self.buf.as_mut().unwrap().get_i16())
     }
 
     /// 异步获取一个小端i16
@@ -300,7 +327,8 @@ impl ByteBuffer {
             return None;
         }
 
-        Some(self.buf.get_i16_le())
+        self.readed += 2;
+        Some(self.buf.as_mut().unwrap().get_i16_le())
     }
 
     /// 异步获取一个大端u16
@@ -310,7 +338,8 @@ impl ByteBuffer {
             return None;
         }
 
-        Some(self.buf.get_u16())
+        self.readed += 2;
+        Some(self.buf.as_mut().unwrap().get_u16())
     }
 
     /// 异步获取一个小端u16
@@ -320,7 +349,8 @@ impl ByteBuffer {
             return None;
         }
 
-        Some(self.buf.get_u16_le())
+        self.readed += 2;
+        Some(self.buf.as_mut().unwrap().get_u16_le())
     }
 
     /// 异步获取一个大端i32
@@ -330,7 +360,8 @@ impl ByteBuffer {
             return None;
         }
 
-        Some(self.buf.get_i32())
+        self.readed += 4;
+        Some(self.buf.as_mut().unwrap().get_i32())
     }
 
     /// 异步获取一个小端i32
@@ -340,7 +371,8 @@ impl ByteBuffer {
             return None;
         }
 
-        Some(self.buf.get_i32_le())
+        self.readed += 4;
+        Some(self.buf.as_mut().unwrap().get_i32_le())
     }
 
     /// 异步获取一个大端u32
@@ -350,7 +382,8 @@ impl ByteBuffer {
             return None;
         }
 
-        Some(self.buf.get_u32())
+        self.readed += 4;
+        Some(self.buf.as_mut().unwrap().get_u32())
     }
 
     /// 异步获取一个小端u32
@@ -360,7 +393,8 @@ impl ByteBuffer {
             return None;
         }
 
-        Some(self.buf.get_u32_le())
+        self.readed += 4;
+        Some(self.buf.as_mut().unwrap().get_u32_le())
     }
 
     /// 异步获取一个大端i64
@@ -370,7 +404,8 @@ impl ByteBuffer {
             return None;
         }
 
-        Some(self.buf.get_i64())
+        self.readed += 8;
+        Some(self.buf.as_mut().unwrap().get_i64())
     }
 
     /// 异步获取一个小端i64
@@ -380,7 +415,8 @@ impl ByteBuffer {
             return None;
         }
 
-        Some(self.buf.get_i64_le())
+        self.readed += 8;
+        Some(self.buf.as_mut().unwrap().get_i64_le())
     }
 
     /// 异步获取一个大端u64
@@ -390,7 +426,8 @@ impl ByteBuffer {
             return None;
         }
 
-        Some(self.buf.get_u64())
+        self.readed += 8;
+        Some(self.buf.as_mut().unwrap().get_u64())
     }
 
     /// 异步获取一个小端u64
@@ -400,7 +437,8 @@ impl ByteBuffer {
             return None;
         }
 
-        Some(self.buf.get_u64_le())
+        self.readed += 8;
+        Some(self.buf.as_mut().unwrap().get_u64_le())
     }
 
     /// 异步获取一个大端i128
@@ -410,7 +448,8 @@ impl ByteBuffer {
             return None;
         }
 
-        Some(self.buf.get_i128())
+        self.readed += 16;
+        Some(self.buf.as_mut().unwrap().get_i128())
     }
 
     /// 异步获取一个小端i128
@@ -420,7 +459,8 @@ impl ByteBuffer {
             return None;
         }
 
-        Some(self.buf.get_i128_le())
+        self.readed += 16;
+        Some(self.buf.as_mut().unwrap().get_i128_le())
     }
 
     /// 异步获取一个大端u128
@@ -430,7 +470,8 @@ impl ByteBuffer {
             return None;
         }
 
-        Some(self.buf.get_u128())
+        self.readed += 16;
+        Some(self.buf.as_mut().unwrap().get_u128())
     }
 
     /// 异步获取一个小端u128
@@ -440,7 +481,8 @@ impl ByteBuffer {
             return None;
         }
 
-        Some(self.buf.get_u128_le())
+        self.readed += 16;
+        Some(self.buf.as_mut().unwrap().get_u128_le())
     }
 
     /// 异步获取一个大端isize
@@ -452,7 +494,8 @@ impl ByteBuffer {
             return None;
         }
 
-        Some(self.buf.get_int(require) as isize)
+        self.readed += isize::BITS as usize / 8;
+        Some(self.buf.as_mut().unwrap().get_int(require) as isize)
     }
 
     /// 异步获取一个小端isize
@@ -464,7 +507,8 @@ impl ByteBuffer {
             return None;
         }
 
-        Some(self.buf.get_int_le(require) as isize)
+        self.readed += isize::BITS as usize / 8;
+        Some(self.buf.as_mut().unwrap().get_int_le(require) as isize)
     }
 
     /// 异步获取一个大端usize
@@ -475,7 +519,8 @@ impl ByteBuffer {
             return None;
         }
 
-        Some(self.buf.get_uint(require) as usize)
+        self.readed += usize::BITS as usize / 8;
+        Some(self.buf.as_mut().unwrap().get_uint(require) as usize)
     }
 
     /// 异步获取一个小端usize
@@ -486,7 +531,8 @@ impl ByteBuffer {
             return None;
         }
 
-        Some(self.buf.get_uint_le(require) as usize)
+        self.readed += usize::BITS as usize / 8;
+        Some(self.buf.as_mut().unwrap().get_uint_le(require) as usize)
     }
 
     /// 异步获取一个大端f32
@@ -496,7 +542,8 @@ impl ByteBuffer {
             return None;
         }
 
-        Some(self.buf.get_f32())
+        self.readed += 4;
+        Some(self.buf.as_mut().unwrap().get_f32())
     }
 
     /// 异步获取一个小端f32
@@ -506,7 +553,8 @@ impl ByteBuffer {
             return None;
         }
 
-        Some(self.buf.get_f32_le())
+        self.readed += 4;
+        Some(self.buf.as_mut().unwrap().get_f32_le())
     }
 
     /// 异步获取一个大端f64
@@ -516,7 +564,8 @@ impl ByteBuffer {
             return None;
         }
 
-        Some(self.buf.get_f64())
+        self.readed += 8;
+        Some(self.buf.as_mut().unwrap().get_f64())
     }
 
     /// 异步获取一个小端f64
@@ -526,7 +575,8 @@ impl ByteBuffer {
             return None;
         }
 
-        Some(self.buf.get_f64_le())
+        self.readed += 8;
+        Some(self.buf.as_mut().unwrap().get_f64_le())
     }
 
     /// 异步获取指定长度的部分缓冲区
@@ -536,7 +586,8 @@ impl ByteBuffer {
             return None;
         }
 
-        Some(PartBuffer(self.buf.copy_to_bytes(len)))
+        self.readed += len;
+        Some(PartBuffer(self.buf.as_mut().unwrap().copy_to_bytes(len)))
     }
 
     /// 尝试异步获取指定长度的部分缓冲区，
@@ -548,13 +599,35 @@ impl ByteBuffer {
             return None;
         }
 
+        self.readed += len;
         if remaining < len {
             //当前缓冲区剩余可读字节长度小于指定长度，则返回所有剩余可读字节
-            Some(PartBuffer(self.buf.copy_to_bytes(remaining)))
+            Some(PartBuffer(self.buf.as_mut().unwrap().copy_to_bytes(remaining)))
         } else {
             //当前缓冲区剩余可读字节长度大于等于指定长度，则返回指定长度的可读字节
-            Some(PartBuffer(self.buf.copy_to_bytes(len)))
+            Some(PartBuffer(self.buf.as_mut().unwrap().copy_to_bytes(len)))
         }
+    }
+
+    /// 截断当前所有已读缓冲区
+    /// 这会释放已读缓冲区的内存，并重置已读字节的总数量
+    pub fn truncate(&mut self) -> usize {
+        let old_buf = self.buf.take().unwrap();
+        let mut new_buf = BytesMut::with_capacity(old_buf.remaining());
+        new_buf.put(old_buf);
+        self.buf = Some(new_buf);
+        let result = self.readed();
+        self.readed = 0;
+
+        result
+    }
+
+    /// 清空当前缓冲区
+    /// 这会释放当前缓冲区的所有内存，并重置已读字节的总数量
+    pub fn clear(&mut self) {
+        let _ = self.buf.take().unwrap();
+        self.buf = Some(BytesMut::new());
+        self.readed = 0;
     }
 }
 
@@ -572,7 +645,11 @@ async fn try_fill_buffer(buffer: &mut ByteBuffer,
             },
             Some(bin) => {
                 //从流中获取数据
-                buffer.buf.put_slice(bin.as_ref()); //写入当前缓冲区
+                buffer
+                    .buf
+                    .as_mut()
+                    .unwrap()
+                    .put_slice(bin.as_ref()); //写入当前缓冲区
                 ready_len += bin.len(); //更新已就绪字节的长度
             },
         }
@@ -596,7 +673,11 @@ async fn try_fill_buffer_by_non_blocking(buffer: &mut ByteBuffer,
             },
             Some(bin) => {
                 //从流中获取数据
-                buffer.buf.put_slice(bin.as_ref()); //写入当前缓冲区
+                buffer
+                    .buf
+                    .as_mut()
+                    .unwrap()
+                    .put_slice(bin.as_ref()); //写入当前缓冲区
                 ready_len += bin.len(); //更新已就绪字节的长度
             },
         }

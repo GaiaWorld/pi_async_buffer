@@ -70,6 +70,86 @@ fn test_bytes_io_slice() {
     println!("!!!!!!remaining: {:?}, slice len: {:?}, io_list: {:?}", buf.remaining(), len, io_list);
 }
 
+struct TestBin(VecDeque<u8>);
+
+impl Drop for TestBin {
+    fn drop(&mut self) {
+        println!("!!!!!!drop test bin");
+    }
+}
+
+impl Buf for TestBin {
+    #[inline]
+    fn advance(&mut self, cnt: usize) {
+        self.0.advance(cnt);
+    }
+
+    #[inline]
+    fn chunk(&self) -> &[u8] {
+        self.0.chunk()
+    }
+
+    #[inline]
+    fn remaining(&self) -> usize {
+        self.0.remaining()
+    }
+}
+
+// 测试BytesMut是否在消耗指定字节后会自动释放内存
+#[test]
+fn test_free_bytes() {
+    let mut buf = BytesMut::new();
+
+    {
+        let bin = "Hello World!".as_bytes();
+        buf.put_slice(bin);
+    }
+
+    {
+        let bin = vec![0xff; 100 * 1024 * 1024];
+        buf.put_slice(bin.as_slice());
+    }
+
+    {
+        let bin = TestBin(vec!(0x7f; 100 * 1024 * 1024).into());
+        buf.put(bin);
+    }
+
+    println!("!!!!!!capacity: {}, len: {}, remaining: {}", buf.capacity(), buf.len(), buf.remaining());
+    thread::sleep(Duration::from_millis(10000));
+
+    let _ = buf.copy_to_bytes(12);
+    println!("!!!!!!capacity: {}, len: {}, remaining: {}", buf.capacity(), buf.len(), buf.remaining());
+    let _ = buf.copy_to_bytes(100 * 1024 * 1024);
+    println!("!!!!!!capacity: {}, len: {}, remaining: {}", buf.capacity(), buf.len(), buf.remaining());
+
+    let mut tmp = BytesMut::new();
+    tmp.put(buf);
+    let mut buf = tmp;
+    thread::sleep(Duration::from_millis(3000));
+
+    {
+        let part = buf.copy_to_bytes(50 * 1024 * 1024);
+        println!("!!!!!!part0: {:?}", part.len());
+        println!("!!!!!!capacity: {}, len: {}, remaining: {}", buf.capacity(), buf.len(), buf.remaining());
+    }
+
+    let mut tmp = BytesMut::new();
+    tmp.put(buf);
+    let mut buf = tmp;
+    thread::sleep(Duration::from_millis(3000));
+
+    {
+        let part = buf.copy_to_bytes(50 * 1024 * 1024);
+        println!("!!!!!!part1: {:?}", part.len());
+        println!("!!!!!!capacity: {}, len: {}, remaining: {}", buf.capacity(), buf.len(), buf.remaining());
+    }
+
+    let mut tmp = BytesMut::new();
+    tmp.put(buf);
+    thread::sleep(Duration::from_millis(1000000000));
+}
+
 #[test]
 fn test_async_buffer() {
     let rt = MultiTaskRuntimeBuilder::default().build();
@@ -83,136 +163,163 @@ fn test_async_buffer() {
         assert_eq!(buffer.is_terminated(), false);
 
         if let Some(num) = buffer.get_i8().await {
+            assert_eq!(buffer.truncate(), 1);
             assert_eq!(num, -125);
         } else {
             panic!("Get i8 failed, reason: stream already closed");
         }
         if let Some(num) = buffer.get_u8().await {
+            assert_eq!(buffer.truncate(), 1);
             assert_eq!(num, 0xff);
         } else {
             panic!("Get u8 failed, reason: stream already closed");
         }
         if let Some(num) = buffer.get_i16().await {
+            assert_eq!(buffer.truncate(), 2);
             assert_eq!(num, -30000);
         } else {
             panic!("Get i16 failed, reason: stream already closed");
         }
         if let Some(num) = buffer.get_i16_le().await {
+            assert_eq!(buffer.truncate(), 2);
             assert_eq!(num, -30000);
         } else {
             panic!("Get i16_le failed, reason: stream already closed");
         }
         if let Some(num) = buffer.get_u16().await {
+            assert_eq!(buffer.truncate(), 2);
             assert_eq!(num, 0xffff);
         } else {
             panic!("Get u16 failed, reason: stream already closed");
         }
         if let Some(num) = buffer.get_u16_le().await {
+            assert_eq!(buffer.truncate(), 2);
             assert_eq!(num, 0xffff);
         } else {
             panic!("Get u16_le failed, reason: stream already closed");
         }
         if let Some(num) = buffer.get_i32().await {
+            assert_eq!(buffer.truncate(), 4);
             assert_eq!(num, -2000000000);
         } else {
             panic!("Get i32 failed, reason: stream already closed");
         }
         if let Some(num) = buffer.get_i32_le().await {
+            assert_eq!(buffer.truncate(), 4);
             assert_eq!(num, -2000000000);
         } else {
             panic!("Get i32_le failed, reason: stream already closed");
         }
         if let Some(num) = buffer.get_u32().await {
+            assert_eq!(buffer.truncate(), 4);
             assert_eq!(num, 0xffffffff);
         } else {
             panic!("Get u32 failed, reason: stream already closed");
         }
         if let Some(num) = buffer.get_u32_le().await {
+            assert_eq!(buffer.truncate(), 4);
             assert_eq!(num, 0xffffffff);
         } else {
             panic!("Get u32_le failed, reason: stream already closed");
         }
         if let Some(num) = buffer.get_i64().await {
+            assert_eq!(buffer.truncate(), 8);
             assert_eq!(num, -9223372036854775805);
         } else {
             panic!("Get i64 failed, reason: stream already closed");
         }
         if let Some(num) = buffer.get_i64_le().await {
+            assert_eq!(buffer.truncate(), 8);
             assert_eq!(num, -9223372036854775805);
         } else {
             panic!("Get i64_le failed, reason: stream already closed");
         }
         if let Some(num) = buffer.get_u64().await {
+            assert_eq!(buffer.truncate(), 8);
             assert_eq!(num, 0xffffffffffffffff);
         } else {
             panic!("Get u64 failed, reason: stream already closed");
         }
         if let Some(num) = buffer.get_u64_le().await {
+            assert_eq!(buffer.truncate(), 8);
             assert_eq!(num, 0xffffffffffffffff);
         } else {
             panic!("Get u64_le failed, reason: stream already closed");
         }
         if let Some(num) = buffer.get_i128().await {
+            assert_eq!(buffer.truncate(), 16);
             assert_eq!(num, -170141183460469231731687303715884105726);
         } else {
             panic!("Get i128 failed, reason: stream already closed");
         }
         if let Some(num) = buffer.get_i128_le().await {
+            assert_eq!(buffer.truncate(), 16);
             assert_eq!(num, -170141183460469231731687303715884105726);
         } else {
             panic!("Get i128_le failed, reason: stream already closed");
         }
         if let Some(num) = buffer.get_u128().await {
+            assert_eq!(buffer.truncate(), 16);
             assert_eq!(num, 0xffffffffffffffffffffffffffffffff);
         } else {
             panic!("Get u128 failed, reason: stream already closed");
         }
         if let Some(num) = buffer.get_u128_le().await {
+            assert_eq!(buffer.truncate(), 16);
             assert_eq!(num, 0xffffffffffffffffffffffffffffffff);
         } else {
             panic!("Get u128_le failed, reason: stream already closed");
         }
         if let Some(num) = buffer.get_isize().await {
+            assert_eq!(buffer.truncate(), isize::BITS as usize / 8);
             assert_eq!(num, -2000000000);
         } else {
             panic!("Get isize failed, reason: stream already closed");
         }
         if let Some(num) = buffer.get_isize_le().await {
+            assert_eq!(buffer.truncate(), isize::BITS as usize / 8);
             assert_eq!(num, -2000000000);
         } else {
             panic!("Get isize_le failed, reason: stream already closed");
         }
         if let Some(num) = buffer.get_usize().await {
+            assert_eq!(buffer.truncate(), usize::BITS as usize / 8);
             assert_eq!(num, 0xffffffff);
         } else {
             panic!("Get usize failed, reason: stream already closed");
         }
         if let Some(num) = buffer.get_usize_le().await {
+            assert_eq!(buffer.truncate(), usize::BITS as usize / 8);
             assert_eq!(num, 0xffffffff);
         } else {
             panic!("Get usize_le failed, reason: stream already closed");
         }
         if let Some(num) = buffer.get_f32().await {
+            assert_eq!(buffer.truncate(), 4);
             assert_eq!(num, 0.999999);
         } else {
             panic!("Get f32 failed, reason: stream already closed");
         }
         if let Some(num) = buffer.get_f32_le().await {
+            assert_eq!(buffer.truncate(), 4);
             assert_eq!(num, 0.999999);
         } else {
             panic!("Get f32_le failed, reason: stream already closed");
         }
         if let Some(num) = buffer.get_f64().await {
+            assert_eq!(buffer.truncate(), 8);
             assert_eq!(num, 0.9999999999999999);
         } else {
             panic!("Get f64 failed, reason: stream already closed");
         }
         if let Some(num) = buffer.get_f64_le().await {
+            assert_eq!(buffer.truncate(), 8);
             assert_eq!(num, 0.9999999999999999);
         } else {
             panic!("Get f64_le failed, reason: stream already closed");
         }
         if let Some(part) = buffer.get(120).await {
+            assert_eq!(buffer.truncate(), 120);
             assert_eq!(String::from_utf8_lossy(part.as_ref()).as_ref(), "Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!");
         } else {
             panic!("Get part failed, reason: stream already closed");
@@ -223,6 +330,7 @@ fn test_async_buffer() {
             panic!("Get part failed, reason: invalid buffer");
         }
 
+        assert_eq!(buffer.truncate(), 0);
         assert_eq!(buffer.is_terminated(), true);
 
         println!("Buffer stream closed");
@@ -512,6 +620,7 @@ fn test_file_stream() {
             println!("Bytes remaining: {}", buffer.remaining());
             vec.push(b);
         }
+        assert_eq!(buffer.truncate(), vec.len());
         assert_eq!(String::from_utf8(vec).unwrap().as_str(), "Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!Hello World!");
 
         println!("Receive finish");
