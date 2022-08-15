@@ -257,6 +257,12 @@ impl ByteBuffer {
         self.buf.remaining()
     }
 
+    /// 流中已发送未接收的数据条目长度
+    #[inline]
+    pub fn unreceived(&self) -> Option<usize> {
+        self.stream.current_len()
+    }
+
     /// 异步获取一个i8
     pub async fn get_i8(&mut self) -> Option<i8> {
         if !try_fill_buffer(self, 1).await {
