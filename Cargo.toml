@@ -1,6 +1,6 @@
 [package]
 name = "pi_async_buffer"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["vmos <vmos@fairblock.io>"]
 edition = "2018"
 description = "Asynchronous Buffer for IO"

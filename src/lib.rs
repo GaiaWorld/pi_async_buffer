@@ -586,25 +586,27 @@ impl ByteBuffer {
             return None;
         }
 
-        self.readed += len;
+        self.readed += len; //更新已读字节数量
         Some(PartBuffer(self.buf.as_mut().unwrap().copy_to_bytes(len)))
     }
 
     /// 尝试异步获取指定长度的部分缓冲区，
     /// 此方法保证不会导致异步阻塞，同时此方法也不保证一定可以获取到不小于指定长度的部分缓冲区
     pub async fn try_get(&mut self, len: usize) -> Option<PartBuffer> {
-        let remaining = self.remaining();
+        let mut remaining = self.remaining();
         if (remaining == 0) && !try_fill_buffer_by_non_blocking(self, len).await {
             //流已结束且当前缓冲区剩余可读字节长度为0，则立即返回空
             return None;
         }
 
-        self.readed += len;
+        remaining = self.remaining(); //填充后需要再次获取最新的缓冲区剩余可读字节数
         if remaining < len {
             //当前缓冲区剩余可读字节长度小于指定长度，则返回所有剩余可读字节
+            self.readed += remaining; //更新已读字节数量
             Some(PartBuffer(self.buf.as_mut().unwrap().copy_to_bytes(remaining)))
         } else {
             //当前缓冲区剩余可读字节长度大于等于指定长度，则返回指定长度的可读字节
+            self.readed += len; //更新已读字节数量
             Some(PartBuffer(self.buf.as_mut().unwrap().copy_to_bytes(len)))
         }
     }
