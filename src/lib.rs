@@ -488,6 +488,13 @@ impl ByteBuffer {
         }
     }
 
+    /// 尝试异步接收流中的所有字节，并填充到当前缓冲区，返回接收后缓冲区剩余可读字节数
+    /// 此方法保证不会导致异步阻塞
+    pub async fn try_fill(&mut self) -> usize {
+        try_fill_buffer_by_non_blocking(self, 0).await;
+        self.remaining()
+    }
+
     /// 截断当前所有已读缓冲区
     /// 这会释放已读缓冲区的内存，并重置已读字节的总数量
     pub fn truncate(&mut self) -> usize {
