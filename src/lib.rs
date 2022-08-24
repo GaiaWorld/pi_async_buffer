@@ -668,8 +668,8 @@ async fn try_fill_buffer(buffer: &mut ByteBuffer,
 async fn try_fill_buffer_by_non_blocking(buffer: &mut ByteBuffer,
                                          require: usize) -> bool {
     let mut ready_len = buffer.remaining(); //初始化已就绪的字节长度
-    while (require == 0 && buffer.stream.current_len().unwrap() > 0)
-        || (ready_len < require && buffer.stream.current_len().unwrap() > 0) {
+    while (buffer.stream.current_len().unwrap() > 0)
+        && (require == 0 || ready_len < require) {
         match buffer.stream.next().await {
             None => {
                 //流已结束，则立即返回空
