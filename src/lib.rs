@@ -20,6 +20,20 @@ impl AsRef<[u8]> for PartBuffer {
     }
 }
 
+impl Buf for PartBuffer {
+    fn remaining(&self) -> usize {
+        self.0.remaining()
+    }
+
+    fn chunk(&self) -> &[u8] {
+        self.0.chunk()
+    }
+
+    fn advance(&mut self, cnt: usize) {
+        self.0.advance(cnt);
+    }
+}
+
 impl PartBuffer {
     /// 判断部分缓冲区是否为空
     #[inline]
@@ -31,120 +45,6 @@ impl PartBuffer {
     #[inline]
     pub fn len(&self) -> usize {
         self.0.len()
-    }
-
-    /// 获取部分缓冲区剩余可读字节长度
-    #[inline]
-    pub fn remaining(&self) -> usize {
-        self.0.remaining()
-    }
-
-    /// 获取一个i8
-    #[inline]
-    pub fn get_i8(&mut self) -> i8 {
-        self.0.get_i8()
-    }
-
-    /// 获取一个u8
-    #[inline]
-    pub fn get_u8(&mut self) -> u8 {
-        self.0.get_u8()
-    }
-
-    /// 获取一个大端i16
-    #[inline]
-    pub fn get_i16(&mut self) -> i16 {
-        self.0.get_i16()
-    }
-
-    /// 获取一个小端i16
-    #[inline]
-    pub fn get_i16_le(&mut self) -> i16 {
-        self.0.get_i16_le()
-    }
-
-    /// 获取一个大端u16
-    #[inline]
-    pub fn get_u16(&mut self) -> u16 {
-        self.0.get_u16()
-    }
-
-    /// 获取一个小端u16
-    #[inline]
-    pub fn get_u16_le(&mut self) -> u16 {
-        self.0.get_u16_le()
-    }
-
-    /// 获取一个大端i32
-    #[inline]
-    pub fn get_i32(&mut self) -> i32 {
-        self.0.get_i32()
-    }
-
-    /// 获取一个小端i32
-    #[inline]
-    pub fn get_i32_le(&mut self) -> i32 {
-        self.0.get_i32_le()
-    }
-
-    /// 获取一个大端u32
-    #[inline]
-    pub fn get_u32(&mut self) -> u32 {
-        self.0.get_u32()
-    }
-
-    /// 获取一个小端u32
-    #[inline]
-    pub fn get_u32_le(&mut self) -> u32 {
-        self.0.get_u32_le()
-    }
-
-    /// 获取一个大端i64
-    #[inline]
-    pub fn get_i64(&mut self) -> i64 {
-        self.0.get_i64()
-    }
-
-    /// 获取一个小端i64
-    #[inline]
-    pub fn get_i64_le(&mut self) -> i64 {
-        self.0.get_i64_le()
-    }
-
-    /// 获取一个大端u64
-    #[inline]
-    pub fn get_u64(&mut self) -> u64 {
-        self.0.get_u64()
-    }
-
-    /// 获取一个小端u64
-    #[inline]
-    pub fn get_u64_le(&mut self) -> u64 {
-        self.0.get_u64_le()
-    }
-
-    /// 获取一个大端i128
-    #[inline]
-    pub fn get_i128(&mut self) -> i128 {
-        self.0.get_i128()
-    }
-
-    /// 获取一个小端i128
-    #[inline]
-    pub fn get_i128_le(&mut self) -> i128 {
-        self.0.get_i128_le()
-    }
-
-    /// 获取一个大端u128
-    #[inline]
-    pub fn get_u128(&mut self) -> u128 {
-        self.0.get_u128()
-    }
-
-    /// 获取一个小端u128
-    #[inline]
-    pub fn get_u128_le(&mut self) -> u128 {
-        self.0.get_u128_le()
     }
 
     /// 获取一个大端isize
@@ -169,30 +69,6 @@ impl PartBuffer {
     #[inline]
     pub fn get_usize_le(&mut self) -> usize {
         self.0.get_uint_le(usize::BITS as usize / 8) as usize
-    }
-
-    /// 获取一个大端f32
-    #[inline]
-    pub fn get_f32(&mut self) -> f32 {
-        self.0.get_f32()
-    }
-
-    /// 获取一个小端f32
-    #[inline]
-    pub fn get_f32_le(&mut self) -> f32 {
-        self.0.get_f32_le()
-    }
-
-    /// 获取一个大端f64
-    #[inline]
-    pub fn get_f64(&mut self) -> f64 {
-        self.0.get_f64()
-    }
-
-    /// 获取一个小端f64
-    #[inline]
-    pub fn get_f64_le(&mut self) -> f64 {
-        self.0.get_f64_le()
     }
 
     /// 获取指定长度的部分缓冲区
