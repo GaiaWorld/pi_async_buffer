@@ -592,6 +592,7 @@ impl ByteBuffer {
 
     /// 尝试异步获取指定长度的部分缓冲区，
     /// 此方法保证不会导致异步阻塞，同时此方法也不保证一定可以获取到不小于指定长度的部分缓冲区
+    /// 当指定获取的字节数量为0，表示尝试获取当前流和当前缓冲区中所有剩余的未读字节
     pub async fn try_get(&mut self, len: usize) -> Option<PartBuffer> {
         let mut remaining = self.remaining();
         if (remaining == 0) && !try_fill_buffer_by_non_blocking(self, len).await {
@@ -662,12 +663,13 @@ async fn try_fill_buffer(buffer: &mut ByteBuffer,
 
 // 如果当前缓冲区没有至少指定字节长度的数据，则尝试从流中获取数据，并填充至少指定字节长度的数据到当前缓冲区，
 // 无需填充或成功填充则返回真，流已结束则返回假
-// 如果未指定长度，则在保证不异步阻塞的前提下，尽可能从流中获取数据
+// 如果指定长度为0，则在保证不异步阻塞的前提下，尽可能从流中获取数据
 #[inline]
 async fn try_fill_buffer_by_non_blocking(buffer: &mut ByteBuffer,
                                          require: usize) -> bool {
     let mut ready_len = buffer.remaining(); //初始化已就绪的字节长度
-    while (ready_len < require) && (buffer.stream.current_len().unwrap() > 0) {
+    while (require == 0)
+        || (ready_len < require && buffer.stream.current_len().unwrap() > 0) {
         match buffer.stream.next().await {
             None => {
                 //流已结束，则立即返回空
