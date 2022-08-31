@@ -18,6 +18,8 @@ use pi_async_buffer::ByteBuffer;
 #[test]
 fn test_bytes() {
     let mut buf = BytesMut::new();
+    assert_eq!(buf.remaining(), 0);
+    assert_eq!(buf.as_ref(), &[]);
 
     let bin = "Hello World!".as_bytes();
     if buf.remaining() == 0 {

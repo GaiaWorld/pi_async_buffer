@@ -477,12 +477,23 @@ impl ByteBuffer {
         }
 
         remaining = self.remaining(); //填充后需要再次获取最新的缓冲区剩余可读字节数
-        if remaining < len {
+        if remaining == 0 {
+            //当前缓冲区在尝试填充后，没有剩余可读字节，则立即返回空缓冲区
+            Some(PartBuffer(Bytes::new()))
+        } else if remaining < len {
             //当前缓冲区剩余可读字节长度小于指定长度，则返回所有剩余可读字节
             self.readed += remaining; //更新已读字节数量
             Some(PartBuffer(self.buf.as_mut().unwrap().copy_to_bytes(remaining)))
         } else {
             //当前缓冲区剩余可读字节长度大于等于指定长度，则返回指定长度的可读字节
+            let len = if len == 0 {
+                //获取当前流和当前缓冲区中所有剩余的未读字节
+                remaining
+            } else {
+                //获取的缓冲区指定长度的未读字节
+                len
+            };
+
             self.readed += len; //更新已读字节数量
             Some(PartBuffer(self.buf.as_mut().unwrap().copy_to_bytes(len)))
         }
