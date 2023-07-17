@@ -1,6 +1,5 @@
 use std::thread;
 use std::sync::Arc;
-use std::path::PathBuf;
 use std::time::Duration;
 use std::collections::VecDeque;
 use std::io::{IoSlice, ErrorKind};
@@ -8,12 +7,11 @@ use std::io::{IoSlice, ErrorKind};
 use futures::SinkExt;
 use bytes::{Buf, BufMut, BytesMut};
 
-use pi_async::rt::{AsyncRuntime, AsyncValue,
-                   multi_thread::MultiTaskRuntimeBuilder,
-                   async_pipeline::{AsyncReceiverExt, channel}};
-use pi_async::rt::async_pipeline::AsyncPipeLineExt;
+use pi_async_rt::rt::{AsyncRuntime, AsyncValue,
+                      multi_thread::MultiTaskRuntimeBuilder};
 use pi_async_file::file::{AsyncFileOptions, AsyncFile, WriteOptions};
-use pi_async_buffer::ByteBuffer;
+use pi_async_buffer::{ByteBuffer,
+                      async_pipeline::{AsyncReceiverExt, AsyncPipeLineExt, channel}};
 
 #[test]
 fn test_bytes() {
@@ -161,7 +159,7 @@ fn test_async_buffer() {
     let value_copy = value.clone();
     let (mut sender, receiver) = channel(512);
     let mut buffer = ByteBuffer::new(receiver.pin_boxed());
-    rt.spawn(rt.alloc(), async move {
+    rt.spawn(async move {
         assert_eq!(buffer.is_terminated(), false);
 
         if let Some(num) = buffer.get_i8().await {
@@ -338,7 +336,7 @@ fn test_async_buffer() {
         println!("Buffer stream closed");
     });
 
-    rt.spawn(rt.alloc(), async move {
+    rt.spawn(async move {
         let mut buf: Vec<u8> = Vec::new();
         buf.put_i8(-125);
         buf.put_u8(0xff);
@@ -616,7 +614,7 @@ fn test_file_stream() {
     let (mut sender, receiver) = channel(1);
     let mut buffer = ByteBuffer::new(receiver.pin_boxed());
 
-    rt.spawn(rt.alloc(), async move {
+    rt.spawn(async move {
         let mut vec = Vec::new();
         while let Some(b) = buffer.get_u8().await {
             println!("Bytes remaining: {}", buffer.remaining());
@@ -628,7 +626,7 @@ fn test_file_stream() {
         println!("Receive finish");
     });
 
-    rt.spawn(rt.alloc(), async move {
+    rt.spawn(async move {
         //打开测试用文件
         let mut file = match AsyncFile::open(rt_copy.clone(),
                                              "./tests/test_file.txt".to_string(),

@@ -1,10 +1,12 @@
+#![feature(allocator_api)]
 #![feature(negative_impls)]
 use std::sync::Arc;
 
 use futures::stream::{Stream, FusedStream, StreamExt};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
-use pi_async::rt::async_pipeline::BoxReceiver;
+pub mod async_pipeline;
+use async_pipeline::BoxReceiver;
 
 ///
 /// 部分缓冲区
